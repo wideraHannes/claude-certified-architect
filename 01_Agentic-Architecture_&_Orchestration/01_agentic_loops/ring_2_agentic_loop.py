@@ -3,6 +3,10 @@ import json
 from config import client, settings
 
 
+"""Ring 1 assumed Claude would call the tool exactly once. Real tasks often need several calls: Claude might create an event, read the confirmation, then create another. The fix is a while loop that keeps running tools and feeding results back until stop_reason is no longer "tool_use".
+
+The other change is conversation history. Instead of rebuilding the messages array from scratch on each request, keep a running list and append to it. Every turn sees the complete prior context."""
+
 tools = [
     {
         "name": "web_search",
@@ -17,21 +21,7 @@ tools = [
             },
             "required": ["query"],
         },
-    },
-    {
-        "name": "calculator",
-        "description": "Performs calculations based on the provided mathematical expression.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "expression": {
-                    "type": "string",
-                    "description": "The mathematical expression to evaluate.",
-                }
-            },
-            "required": ["expression"],
-        },
-    },
+    }
 ]
 
 
@@ -40,16 +30,10 @@ def run_tool(name, tool_input):
         return {
             "query": f"Results for query '{tool_input['query']}'",
         }
-    if name == "calculator":
-        return {
-            "result": f"Result for expression '{tool_input['expression']}'",
-        }
     return {"error": f"Unknown tool: {name}"}
 
 
-messages = [
-    {"role": "user", "content": "How will be the weather today and whats 2+209?"}
-]
+messages = [{"role": "user", "content": "How will be the weather today?"}]
 
 
 response = client.messages.create(
