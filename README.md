@@ -18,7 +18,7 @@ Topics:
   - Docs: <https://platform.claude.com/docs/en/agents-and-tools/tool-use/build-a-tool-using-agent>
 - 1.2 Multi-Agent Orchestration
 - 1.3 Subagent Invocation and Context Passing
-- 1.4 Workflow Enforcement and Handoff
+- 1.4 Workflow Enforcement and Handoff — [`01_Agentic-Architecture_&_Orchestration/04_workflow_enforcement_handoff/`](01_Agentic-Architecture_%26_Orchestration/04_workflow_enforcement_handoff/)
 - 1.5 Agent SDK Hooks
 - 1.6 Task Decomposition Strategies
 - 1.7 Session State and Resumption
