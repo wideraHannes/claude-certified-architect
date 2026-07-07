@@ -25,6 +25,10 @@ Topics:
 
 ### 02 — Tool Design & MCP Integration
 
+Topics:
+
+- 2.1 Tool Schema Design — [`02_Tool-Design_&_MCP-Integration/01_tool_schema_design/`](02_Tool-Design_%26_MCP-Integration/01_tool_schema_design/)
+
 ### 03 — Claude Code Configuration & Workflows
 
 ### 04 — Prompt Engineering & Structured Output
