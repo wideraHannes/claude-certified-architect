@@ -148,6 +148,7 @@ def _build_options() -> ClaudeAgentOptions:
             ],
         },
         permission_mode="acceptEdits",
+        tool_choice
     )
 
 
