@@ -1,25 +1,22 @@
 # Multi-Agent Orchestration Patterns
 
-Condensed notes from [1.2 Orchestration Patterns](https://claudecertificationguide.com/learn/1-agentic-architecture/1-2-orchestration-patterns).
+Notes on [1.2](https://claudecertificationguide.com/learn/1-agentic-architecture/1-2-orchestration-patterns).
 
-## Hub-and-Spoke (Core Pattern)
+## Hub-and-spoke
 
-A **coordinator** agent sits at the center, receives the initial task, decomposes it, and delegates to specialized **subagents** (e.g. web search, document analysis).
+Coordinator decomposes the task and delegates to specialized subagents. **All traffic through the hub** — subagents never talk to each other.
 
-**Golden rule:** all communication flows through the coordinator. Subagents never talk to each other directly. This gives observability, consistent error handling, and controlled information flow.
+## Rules
 
-## Key Principles
+- **Isolation** — subagents inherit no history or system prompt. Pass every needed fact in the prompt.
+- **No shared memory** — each invocation is independent.
 
-- **Isolation** — Subagents do NOT inherit the coordinator's conversation history or system prompt. Every piece of context a subagent needs must be explicitly passed in its prompt.
-- **No shared memory** — Each subagent invocation is independent. A second call has no knowledge of the first.
+## Coordinator does
 
-## Coordinator Responsibilities
+1. Invoke only the subagents needed.
+2. Assign non-overlapping scopes.
+3. Detect gaps in output, re-delegate with follow-up queries.
 
-1. **Dynamic selection** — invoke only the subagents actually needed, not the full pipeline every time.
-2. **Scope partitioning** — assign distinct, non-overlapping subtopics to avoid duplicate work.
-3. **Iterative refinement** — evaluate subagent output, detect gaps, and re-delegate with targeted follow-up queries.
-4. **Centralized routing** — keep all traffic through the hub.
+## Exam trap
 
-## Exam Pitfall: Narrow Decomposition
-
-If a coordinator splits "renewable energy" into only *solar* and *wind*, it silently misses geothermal, tidal, biomass, fusion. The failure is in the **coordinator's decomposition**, not the subagents. Always trace failures back to how the task was split up front.
+Narrow decomposition. Splitting "renewable energy" into only solar + wind silently drops geothermal, tidal, biomass. Failures trace back to the split, not the subagent.

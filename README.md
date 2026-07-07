@@ -20,7 +20,7 @@ Topics:
 - 1.3 Subagent Invocation and Context Passing
 - 1.4 Workflow Enforcement and Handoff — [`01_Agentic-Architecture_&_Orchestration/04_workflow_enforcement_handoff/`](01_Agentic-Architecture_%26_Orchestration/04_workflow_enforcement_handoff/)
 - 1.5 Agent SDK Hooks — [`01_Agentic-Architecture_&_Orchestration/05_agent_sdk_hooks/`](01_Agentic-Architecture_%26_Orchestration/05_agent_sdk_hooks/)
-- 1.6 Task Decomposition Strategies
+- 1.6 Task Decomposition Strategies — [`01_Agentic-Architecture_&_Orchestration/06_task_decomposition/`](01_Agentic-Architecture_%26_Orchestration/06_task_decomposition/)
 - 1.7 Session State and Resumption
 
 ### 02 — Tool Design & MCP Integration

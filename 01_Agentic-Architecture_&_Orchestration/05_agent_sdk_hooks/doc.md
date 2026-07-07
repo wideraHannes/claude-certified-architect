@@ -1,98 +1,54 @@
 # Agent SDK Hooks
 
-Condensed notes from [1.5 Agent SDK Hooks](https://claudecertificationguide.com/learn/1-agentic-architecture/1-5-agent-sdk-hooks).
-SDK reference: [Intercept and control agent behavior with hooks](https://code.claude.com/docs/en/agent-sdk/hooks).
+Notes on [1.5](https://claudecertificationguide.com/learn/1-agentic-architecture/1-5-agent-sdk-hooks). SDK ref: [hooks](https://code.claude.com/docs/en/agent-sdk/hooks).
 
-## Core distinction
+## Prompt vs. hook
 
-- **Prompt-based guidance** — probabilistic (~95%). Fine for style, formatting, ordering.
-- **Hooks** — deterministic (100%). Callback code the SDK runs at fixed lifecycle points. The model cannot argue its way past a hook.
+- **Prompt** — ~95%, probabilistic.
+- **Hook** — 100%, deterministic callback at a lifecycle point. Model can't argue past it.
 
-Same decision rule as [[1.4 workflow enforcement]]: if a single failure means money loss, security breach, or compliance violation → use a hook, not a prompt.
+Same rule as [[1.4 workflow enforcement]]: money/security/compliance ⇒ hook.
 
-## The two hooks that carry the exam
+## Two hooks
 
-- **PreToolUse** — fires *before* a tool executes. Can block, modify input, or auto-approve.
-  - Use it for policy enforcement: refund > $500, transfer before AML, discount > 20%.
-  - Trap: putting a policy check in PostToolUse instead — the action already happened.
-- **PostToolUse** — fires *after* a tool returns, before the model sees the result. Can rewrite the output.
-  - Use it for **data normalization**: one tool returns Unix timestamps, another ISO 8601, another a human-readable date; normalize them all before the model reinterprets each format from scratch on every turn.
+- **PreToolUse** — before the tool runs. Block, modify input, or auto-approve. Policy enforcement lives here (refund > $500, AML gate).
+- **PostToolUse** — after tool returns, before model sees result. Rewrite output. Use for **data normalization** (timestamp formats, unit conversions).
 
-## Callback contract (Python SDK)
+Trap: policy in PostToolUse — the action already ran.
+
+## Callback shape
 
 ```python
 async def my_hook(input_data, tool_use_id, context):
-    # input_data has: hook_event_name, tool_name, tool_input, session_id, cwd, ...
-    # PreToolUse decision:
-    return {
-        "hookSpecificOutput": {
-            "hookEventName": input_data["hook_event_name"],
-            "permissionDecision": "deny",  # or "allow" | "ask" | "defer"
-            "permissionDecisionReason": "why the model should stop retrying",
-        }
-    }
-    # PostToolUse rewrite:
-    return {
-        "hookSpecificOutput": {
-            "hookEventName": input_data["hook_event_name"],
-            "updatedToolOutput": normalized_text,
-        }
-    }
-    # No-op:
-    return {}
+    return {"hookSpecificOutput": {
+        "hookEventName": input_data["hook_event_name"],
+        "permissionDecision": "deny",  # allow | ask | defer
+        "permissionDecisionReason": "...",
+    }}
 ```
 
-Registration:
+Modify input (Pre): `updatedInput` + `permissionDecision: "allow"`. Modify output (Post): `updatedToolOutput`.
 
-```python
-ClaudeAgentOptions(
-    hooks={
-        "PreToolUse":  [HookMatcher(matcher="mcp__billing__process_refund", hooks=[refund_gate])],
-        "PostToolUse": [HookMatcher(matcher="mcp__billing__.*",             hooks=[normalize])],
-    },
-)
-```
+## Matchers
 
-## Matcher rules that bite
+- Only `[A-Za-z0-9_\- ,|]` → exact string; `|` = alternatives.
+- Any other char → unanchored regex.
+- Empty/`"*"` → matches everything.
+- **Filter by tool name only.** Filter arguments inside the callback.
+- MCP tools: `mcp__{server}__{tool}`.
 
-- Only letters/digits/`_`/`-`/space/`,`/`|` → **exact string**, `|` separates alternatives (`"Write|Edit"`).
-- Any other character → **unanchored regex** (`"^mcp__"` matches every MCP tool).
-- Empty / omitted / `"*"` → matches everything.
-- **Matchers filter by tool name only**, never by arguments. Filter by `tool_input.file_path` (or `.amount`) *inside* the callback.
-- MCP tool names are `mcp__{server}__{tool}`.
+## Precedence
 
-## Multiple hooks + precedence
+All matching hooks run in parallel, non-deterministic order. Precedence: **deny > defer > ask > allow**. Write each to stand alone.
 
-All matching hooks run in parallel, in non-deterministic order. Precedence: **deny > defer > ask > allow**. Write each hook to stand alone — never assume another hook ran first.
+## Python gotchas
 
-## Modifying input vs. output
-
-- Modify a tool's *input* (PreToolUse): put `updatedInput` inside `hookSpecificOutput` **and** set `permissionDecision: "allow"` (or `"ask"`). Return a new dict — do not mutate `tool_input`.
-- Modify a tool's *output* (PostToolUse): set `updatedToolOutput` inside `hookSpecificOutput`. Works for any tool in both SDKs; the older `updatedMCPToolOutput` is deprecated.
-
-## Async / side-effect hooks
-
-For logging or webhooks that must not block the model: return `{"async_": True, "asyncTimeout": 30000}` (note the trailing underscore in Python — `async` is reserved). Fire-and-forget only: async hooks cannot block, modify, or inject context.
-
-## Python-specific gotchas
-
-- `SessionStart` / `SessionEnd` are **not** available as SDK callback hooks in Python — TypeScript only. In Python register them as shell-command hooks in `.claude/settings.json` and load with `setting_sources=["project"]`, or use the first `receive_response()` message as your init trigger.
-- `structuredContent` from a tool handler is TypeScript-only; the Python `@tool` decorator forwards only `content` and `is_error`.
-- `agent_id` / `agent_type` are on `PreToolUse`, `PostToolUse`, `PostToolUseFailure` only.
+- `SessionStart`/`SessionEnd` — TypeScript only. In Python use `.claude/settings.json` shell hooks with `setting_sources=["project"]`.
+- Async side-effect hooks: `{"async_": True, "asyncTimeout": 30000}`. Fire-and-forget only.
 
 ## Exam traps
 
-- "Use PostToolUse to block the refund" — wrong, the refund already ran. **PreToolUse**.
-- "Just add a stronger system-prompt rule" — probabilistic, not deterministic; never sufficient for financial or compliance.
-- "Add a routing classifier" — classifiers route between agents, they don't enforce workflow inside one.
-- Assuming matchers filter by argument (file path, amount) — they don't; filter inside the callback.
-- Forgetting `permissionDecision: "allow"` alongside `updatedInput` — the modified input is silently dropped.
-
-## Files in this section
-
-- `hooks_exercise.py` — minimal walkthrough on built-in tools (no MCP yet). Three callbacks, one per pattern:
-  1. `block_env_writes` — PreToolUse on `Write`, `permissionDecision="deny"` when the path ends in `.env`.
-  2. `defang_rm_rf` — PreToolUse on `Bash`, `updatedInput` swaps `rm -rf ...` for a harmless `echo`. Requires `permissionDecision="allow"` alongside.
-  3. `annotate_bash_output` — PostToolUse on `Bash`, `updatedToolOutput` appends a compliance banner before the model reads the result.
-
-  Registration is the "table of contents" — read `options.hooks` top-down to see event → matcher → callback.
+- "PostToolUse to block the refund" — too late; use PreToolUse.
+- "Stronger prompt" — probabilistic, insufficient for financial/compliance.
+- Matchers filtering by argument — they don't.
+- `updatedInput` without `permissionDecision: "allow"` — silently dropped.
