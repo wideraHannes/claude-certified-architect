@@ -30,6 +30,7 @@ Topics:
 - 2.1 Tool Schema Design — [`02_Tool-Design_&_MCP-Integration/01_tool_schema_design/`](02_Tool-Design_%26_MCP-Integration/01_tool_schema_design/)
 - 2.2 Structured Error Responses — [`02_Tool-Design_&_MCP-Integration/02_structured_error_responses/`](02_Tool-Design_%26_MCP-Integration/02_structured_error_responses/)
 - 2.3 Tool Distribution & Tool Choice — [`02_Tool-Design_&_MCP-Integration/03_tool_distribution_choice/`](02_Tool-Design_%26_MCP-Integration/03_tool_distribution_choice/)
+- 2.4 MCP Server Integration — [`02_Tool-Design_&_MCP-Integration/04_mcp_server_integration/`](02_Tool-Design_%26_MCP-Integration/04_mcp_server_integration/)
 
 ### 03 — Claude Code Configuration & Workflows
 
